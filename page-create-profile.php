@@ -1,20 +1,31 @@
+<?php
+    
+    if(!session_start()){
+        echo 'Failed to start session';
+        exit;
+    }
+    
+    session_unset();
+    session_destroy();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        			<!-- Global site tag (gtag.js) - Google Analytics -->
-		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-105838220-2"></script>
-		<script>
-		  window.dataLayer = window.dataLayer || [];
-		  function gtag(){dataLayer.push(arguments);}
-		  gtag('js', new Date());
+                        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-105838220-2"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
 
-		  gtag('config', 'UA-105838220-2');
-		</script>
+          gtag('config', 'UA-105838220-2');
+        </script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="description" content="">
         <meta name="keywords" content="">
-
+        <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
         <title>Quant</title>
 
         <!-- Styles -->
@@ -42,6 +53,7 @@
 
 
                 <div class="topbar-right">
+                    <a class="btn btn-sm btn-danger mr-4" href="page-login.html">Login</a>
                     <!--<a class="btn btn-sm btn-outline btn-danger hidden-sm-down" href="page-register.html">Sign up</a>-->
 
                     <button class="drawer-toggler ml-12">&#9776;</button>
@@ -58,7 +70,7 @@
                 <div class="row">
                     <div class="col-12 col-lg-8 offset-lg-2">
 
-                        <h1>Go to your workspace URL</h1>
+                        <h1 id = "workspace"></h1>
                         <p class="fs-20 opacity-70"></p>
 
                     </div>
@@ -77,50 +89,94 @@
             <section class="section">
                 <div class="container">
                     <header class="section-header">
-                        <span class ="lead" id="serverMessage" style = "color: black;font-weight: 600;">Please enter your workspace URL</span>
+                        <span class ="lead" id="serverMessage" style = "color: black;font-weight: 600;">Please enter a valid username. <br>You'll be using this username/password to log into the system.</span>
                     </header>
-
-                        <div class="row center-block" style ="margin-left:33%;">
-                            <input onchange="checkIfCompanyExists(this);" onkeypress='return event.charCode >= 48 && event.charCode <= 57 || ((event.charCode > 64 && event.charCode < 91) || (event.charCode > 96 && event.charCode < 123) || event.charCode == 8)'
-                                class="col-5 form-control" maxlength="20" style="text-align:right;color: black;" type="text" id="company_name" placeholder="example : 1qubit"><h5 class="col-6" style = "padding:5px;">.quanterp.com</h5>
-                            <span style = "margin-left:34%; position: absolute;left: 2px;padding-top: 10px;">https://</span>
-                        </div><br>
-
+                        <div class="form-group center-block" style ="margin-left:30%;">
+                        <input onkeypress='return event.charCode >= 48 && event.charCode <= 57 || ((event.charCode > 64 && event.charCode < 91) || (event.charCode > 96 && event.charCode < 123) || event.charCode == 8)'
+                                class="col-7 form-control" maxlength="20" style="color: black;" type="text" id="username" placeholder="Enter Username">
+                        <br>
+                        <input type ="password"
+                            onkeypress='return event.charCode >= 48 && event.charCode <= 57 || ((event.charCode > 64 && event.charCode < 91) || (event.charCode > 96 && event.charCode < 123) || event.charCode == 8)'
+                               class="col-7 form-control" maxlength="20" style="color: black;" id="password" placeholder="Enter Password">
+                        <br>
+                        <input type ="password"
+                            onkeypress='return event.charCode >= 48 && event.charCode <= 57 || ((event.charCode > 64 && event.charCode < 91) || (event.charCode > 96 && event.charCode < 123) || event.charCode == 8)'
+                                class="col-7 form-control" maxlength="20" style="color: black;" id="confirmPassword" placeholder="Confirm Password">
+                        <br>
+                        <input type ="text" id ="contact" maxlength="10"
+                            onkeypress='return event.charCode >= 48 && event.charCode <= 57'
+                                class="col-7 form-control"  style="color: black;" placeholder="Enter Your Contact Number">
+                        </div> 
+                        <br> 
                         <p class="text-center">   
-                            <button id = "createUrlButton" onclick="goToCompanyWorkspace();" class="btn btn-xl btn-primary w-250" type="submit">Continue</button><br>
-                            <small>Please use the URL registered by your organization</small>
+                            <button onclick="createProfile()" id = "buttonCreateUrl" class="btn btn-xl btn-primary w-270" type="submit">Continue</button><br>
+                            <small>Send OTP to contact number</small>
                         </p>
-
                 </div>
             </section>
             <script>
-                function goToCompanyWorkspace(){
-                    var name = $('#company_name').val();
-                    if(name.trim()!=''){
-                        window.location = "https://" + name + ".quanterp.com";
+                function createProfile(){
+                    $('#serverMessage').css('color', 'black');
+                    $('#serverMessage').html("Please enter a valid username. <br>You'll be using this username/password to log into the system.");
+                    $('#buttonCreateUrl').prop('disabled', true);
+                    var name = getParameterByName('workspace');
+                    var username = $("#username").val().trim();
+                    var password = $("#password").val().trim();
+                    var confirmPassword = $("#confirmPassword").val().trim();
+                    
+                    var contact = $("#contact").val().trim();
+                    
+                    if(password!=confirmPassword){
+                        $('#serverMessage').css('color', 'red'); 
+                        $('#serverMessage').html('Passwords do not match');
+                        $('#buttonCreateUrl').prop('disabled', false);
+                        return;
                     }
+                    
+                    if(contact.length!=10){
+                        $('#serverMessage').css('color', 'red'); 
+                        $('#serverMessage').html('Please enter a valid 10 digit mobile number');
+                        $('#buttonCreateUrl').prop('disabled', false);
+                        return;
+                    }
+                    
+                    $.post("create-workspace.php", {username: username, password:password, workspace_name:name, contact:contact}, function(result){
+                        if(result == 'success'){
+                            window.location = 'create-workspace.php';
+                            return;
+                        } else {
+                           $('#serverMessage').css('color', 'red'); 
+                           $('#serverMessage').html(result);
+                           $('#buttonCreateUrl').prop('disabled', false);
+                        }
+                    });
                 }
                 
-                function checkIfCompanyExists(element){
-                    $('#createUrlButton').prop('disabled', true);
-                    $('#serverMessage').css('color', 'black');
-                    $('#serverMessage').html('Just a moment...');
-                    var name = element.value;
-                    
-                    if(name.trim() == ''){
-                        $('#serverMessage').html('Please enter your workspace URL.');
-                    } else {
+                function checkIfCompanyExists(){
+                    var name = getParameterByName('workspace');                    
+                    if(name && name.trim() != ''){
                         $.post("/db/companyexists.php", {company_name: name}, function(result){
-                            if(result == 'exists'){
-                                $('#createUrlButton').prop('disabled', false);
-                                $('#serverMessage').css('color', 'green');
-                                $('#serverMessage').html('Press continue to go to your workspace');
+                            if(result != 'available'){
+                                window.location = 'page-confirm-url.html';
                             } else {
-                                $('#serverMessage').css('color', 'red');
-                                $('#serverMessage').html('You have entered an invalid workspace URL');
+                                $('#workspace').html('Enter details for workspace<br>' + name + '.quanterp.com');
                             }
                         });
+                    } else {
+                        window.location = 'page-confirm-url.html';
                     }
+                }
+                           
+                checkIfCompanyExists();
+                
+                function getParameterByName(name, url) {
+                    if (!url) url = window.location.href;
+                    name = name.replace(/[\[\]]/g, "\\$&");
+                    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                        results = regex.exec(url);
+                    if (!results) return null;
+                    if (!results[2]) return '';
+                    return decodeURIComponent(results[2].replace(/\+/g, " "));
                 }
             </script>
         </main>

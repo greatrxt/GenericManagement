@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+                        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-105838220-2"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+
+          gtag('config', 'UA-105838220-2');
+        </script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="description" content="">
@@ -69,7 +78,7 @@
             <section class="section">
                 <div class="container">
                     <header class="section-header">
-                        <span class ="lead" id="serverMessage" style = "color: black">Please enter a valid username. <br>You'll be using this username/password to log into the system.</span>
+                        <span class ="lead" id="serverMessage" style = "color: black;font-weight: 600;">Please enter a valid username. <br>You'll be using this username/password to log into the system.</span>
                     </header>
                         <div class="form-group center-block" style ="margin-left:30%;">
                         <input onkeypress='return event.charCode >= 48 && event.charCode <= 57 || ((event.charCode > 64 && event.charCode < 91) || (event.charCode > 96 && event.charCode < 123) || event.charCode == 8)'
@@ -82,11 +91,15 @@
                         <input type ="password"
                             onkeypress='return event.charCode >= 48 && event.charCode <= 57 || ((event.charCode > 64 && event.charCode < 91) || (event.charCode > 96 && event.charCode < 123) || event.charCode == 8)'
                                 class="col-7 form-control" maxlength="20" style="color: black;" id="confirmPassword" placeholder="Confirm Password">
-                        </div>
                         <br>
+                        <input type ="text" id ="contact" maxlength="10"
+                            onkeypress='return event.charCode >= 48 && event.charCode <= 57'
+                                class="col-7 form-control"  style="color: black;" placeholder="Enter Your Contact Number">
+                        </div> 
+                        <br> 
                         <p class="text-center">   
-                            <button onclick="createWorkspaceUrl()" id = "buttonCreateUrl" class="btn btn-xl btn-primary w-270" type="submit">Create Workspace</button><br>
-                            <small>3, 2, 1, Go !</small>
+                            <button onclick="createWorkspaceUrl()" id = "buttonCreateUrl" class="btn btn-xl btn-primary w-270" type="submit">Continue</button><br>
+                            <small>Send OTP to contact number</small>
                         </p>
                 </div>
             </section>
@@ -100,12 +113,21 @@
                     var password = $("#password").val().trim();
                     var confirmPassword = $("#confirmPassword").val().trim();
                     
+                    var contact = $("#contact").val().trim();
+                    
                     if(password!=confirmPassword){
                         $('#serverMessage').css('color', 'red'); 
                         $('#serverMessage').html('Passwords do not match');
+                        $('#buttonCreateUrl').prop('disabled', false);
                         return;
                     }
                     
+                    if(contact.length!=10){
+                        $('#serverMessage').css('color', 'red'); 
+                        $('#serverMessage').html('Please enter a valid 10 digit mobile number');
+                        $('#buttonCreateUrl').prop('disabled', false);
+                        return;
+                    }
                     $.post("/cpanel/cpanel.php", {username: username, password:password, workspace_name:name}, function(result){
                         if(result == 'success'){
                             setTimeout(new function(){

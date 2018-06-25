@@ -1,20 +1,100 @@
+<?php
+
+/* 
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+        
+    if(!session_start()){
+        echo 'Failed to start session';
+        exit;
+    }
+
+    if($_SERVER['REQUEST_METHOD'] == 'POST'){
+        if(empty($_SESSION["workspace"]) 
+                && empty($_SESSION["username"]) 
+                && empty($_SESSION["password"]) 
+                && empty($_SESSION["contact"]) 
+                && empty($_SESSION["otp"])){
+
+            require 'db/company.php';
+            require 'db/communication_utils.php';
+
+            if(empty($_POST["workspace_name"])){
+                echo "Workspace name cannot be empty";
+                exit;
+            } 
+
+            if(empty($_POST["username"]) || empty($_POST["password"])){
+                echo "Username or password cannot be empty";
+                exit;
+            } 
+
+            $company = new company();
+            if(strcmp($company->workspace_available($_POST["workspace_name"]), 'available')){
+                echo $_POST["workspace_name"]." workspace already exists";
+                exit;
+            }
+
+            $_SESSION["workspace"] = $_POST["workspace_name"];
+            $_SESSION["username"] = $_POST["username"];
+            $_SESSION["password"] = $_POST["password"];
+            $_SESSION["contact"] = $_POST["contact"];
+            $_SESSION["otp"] = rand(1111, 9998);
+            $message = 'Your Quant OTP is : '.$_SESSION["otp"];
+            
+            $comm = new communication_utils();
+            $comm->send_text_message($message, $_SESSION["contact"]);
+            
+            //print_r($_SESSION);
+            echo 'success';
+        } else if(!empty($_SESSION["otp"] 
+                && !empty($_POST["otp"]))) {
+            require ('cpanel/cpanel.php');
+            if(trim($_SESSION["otp"]) == $_POST["otp"]){
+                $cpanel = new cpanel();
+                echo $cpanel->create_workspace($_SESSION["workspace"], $_SESSION["username"], $_SESSION["password"], $_SESSION["contact"]);
+            } else {
+                echo "You have entered an invalid OTP";
+            }
+        } 
+        
+        exit;
+    } else if(empty($_SESSION["workspace"]) 
+                || empty($_SESSION["username"]) 
+                || empty($_SESSION["password"]) 
+                || empty($_SESSION["contact"]) 
+                || empty($_SESSION["otp"])){
+        header("Location: https://quanterp.com");
+        die();
+    }
+    
+//    if(isset($_SESSION["otp"]))
+  //      echo '<!--'.$_SESSION["otp"].'-->';
+    
+    ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        			<!-- Global site tag (gtag.js) - Google Analytics -->
-		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-105838220-2"></script>
-		<script>
-		  window.dataLayer = window.dataLayer || [];
-		  function gtag(){dataLayer.push(arguments);}
-		  gtag('js', new Date());
+                        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-105838220-2"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
 
-		  gtag('config', 'UA-105838220-2');
-		</script>
+          gtag('config', 'UA-105838220-2');
+        </script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="description" content="">
         <meta name="keywords" content="">
-
+        <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
         <title>Quant</title>
 
         <!-- Styles -->
@@ -42,6 +122,7 @@
 
 
                 <div class="topbar-right">
+                    <a class="btn btn-sm btn-danger mr-4" href="page-login.html">Login</a>
                     <!--<a class="btn btn-sm btn-outline btn-danger hidden-sm-down" href="page-register.html">Sign up</a>-->
 
                     <button class="drawer-toggler ml-12">&#9776;</button>
@@ -58,8 +139,10 @@
                 <div class="row">
                     <div class="col-12 col-lg-8 offset-lg-2">
 
-                        <h1>Go to your workspace URL</h1>
-                        <p class="fs-20 opacity-70"></p>
+                        <h1 id = "workspace"></h1>
+                        <p class="fs-20 opacity-70">
+                            
+                        </p>
 
                     </div>
                 </div>
@@ -69,59 +152,48 @@
         <!-- END Header -->
         <!-- Main container -->
         <main class="main-content">
-            <!--
-            |‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒
-            | Request form
-            |‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒
-            !-->
             <section class="section">
                 <div class="container">
                     <header class="section-header">
-                        <span class ="lead" id="serverMessage" style = "color: black;font-weight: 600;">Please enter your workspace URL</span>
+                        <span class ="lead" id="serverMessage" style = "color: black">Please enter the OTP sent to you on your registered mobile number.</span>
                     </header>
-
-                        <div class="row center-block" style ="margin-left:33%;">
-                            <input onchange="checkIfCompanyExists(this);" onkeypress='return event.charCode >= 48 && event.charCode <= 57 || ((event.charCode > 64 && event.charCode < 91) || (event.charCode > 96 && event.charCode < 123) || event.charCode == 8)'
-                                class="col-5 form-control" maxlength="20" style="text-align:right;color: black;" type="text" id="company_name" placeholder="example : 1qubit"><h5 class="col-6" style = "padding:5px;">.quanterp.com</h5>
-                            <span style = "margin-left:34%; position: absolute;left: 2px;padding-top: 10px;">https://</span>
-                        </div><br>
-
+                        <div class="form-group center-block" style ="margin-left:30%;">
+                        <input maxlength = "4" onkeypress='return event.charCode >= 48 && event.charCode <= 57' id ="otp_text"
+                                class="col-7 form-control text-center" style="color: black;letter-spacing: 1em; padding: 10px;" type="text" placeholder="Enter OTP">
+                        <br> 
+                        </div>
                         <p class="text-center">   
-                            <button id = "createUrlButton" onclick="goToCompanyWorkspace();" class="btn btn-xl btn-primary w-250" type="submit">Continue</button><br>
-                            <small>Please use the URL registered by your organization</small>
+                            <button onclick="createWorkspaceUrl()" id = "buttonCreateUrl" class="btn btn-xl btn-primary w-270" type="submit">Continue</button><br>
+                            <small>3, 2, 1, Go !</small>
                         </p>
-
-                </div>
+                
             </section>
             <script>
-                function goToCompanyWorkspace(){
-                    var name = $('#company_name').val();
-                    if(name.trim()!=''){
-                        window.location = "https://" + name + ".quanterp.com";
+                function createWorkspaceUrl(){
+                    $('#serverMessage').css('color', 'black');
+                    //$('#serverMessage').html("Please enter One Time Password sent to your mobile phone.");
+                    $('#buttonCreateUrl').prop('disabled', true);
+
+                    var otp = $("#otp_text").val().trim();
+                    if(otp.length!=4){
+                        $('#serverMessage').css('color', 'red'); 
+                        $('#serverMessage').html('Please enter a valid OTP');
+                        $('#buttonCreateUrl').prop('disabled', false);
+                        return;
                     }
+                    $.post("create-workspace.php", {otp: otp}, function(result){
+                        if(result == 'success'){
+                            setTimeout(new function(){
+                                window.location = 'https://<?php echo $_SESSION["workspace"]; ?>.quanterp.com';
+                            }, 10000);
+                        } else {
+                           $('#serverMessage').css('color', 'red'); 
+                           $('#serverMessage').html(result);
+                           $('#buttonCreateUrl').prop('disabled', false);
+                        }
+                    });
                 }
                 
-                function checkIfCompanyExists(element){
-                    $('#createUrlButton').prop('disabled', true);
-                    $('#serverMessage').css('color', 'black');
-                    $('#serverMessage').html('Just a moment...');
-                    var name = element.value;
-                    
-                    if(name.trim() == ''){
-                        $('#serverMessage').html('Please enter your workspace URL.');
-                    } else {
-                        $.post("/db/companyexists.php", {company_name: name}, function(result){
-                            if(result == 'exists'){
-                                $('#createUrlButton').prop('disabled', false);
-                                $('#serverMessage').css('color', 'green');
-                                $('#serverMessage').html('Press continue to go to your workspace');
-                            } else {
-                                $('#serverMessage').css('color', 'red');
-                                $('#serverMessage').html('You have entered an invalid workspace URL');
-                            }
-                        });
-                    }
-                }
             </script>
         </main>
         <!-- END Main container -->
@@ -245,3 +317,5 @@
 
     </body>
 </html>
+
+    
